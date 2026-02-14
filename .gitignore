@@ -1,0 +1,39 @@
+# MATLAB
+*.asv
+*.m~
+*.fig
+*.mat
+*.mexw64
+*.mexa64
+*.mexmaci64
+*.mexmaca64
+*.slxc
+*.autosave
+
+# MATLAB Compiler
+mccExcludedFiles.log
+readme.txt
+requiredMCRProducts.txt
+
+# MATLAB Reports
+html/
+*.html
+
+# Simulink
+*.slxc
+*.autosave
+*.rpt
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+

@@ -1,0 +1,362 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% CAPÍTULO: SUPERFICIES RECONFIGURABLES INTELIGENTES (RIS)
+% Para TFG de Telecomunicaciones - Versión compacta (~10 páginas)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Superficies Reconfigurables Inteligentes (RIS)}
+\label{cap:ris}
+
+%==============================================================================
+\section{Introducción y Motivación}
+\label{sec:ris_intro}
+%==============================================================================
+
+Las tecnologías MIMO han permitido incrementar significativamente las tasas de transmisión mediante el uso de múltiples antenas tanto en transmisión como en recepción. No obstante, estas técnicas presentan una limitación fundamental: su rendimiento depende directamente de la calidad del canal de propagación subyacente. En escenarios donde la ganancia de canal $\beta$ es inherentemente baja, la multiplicación por el número de antenas no logra compensar esta deficiencia de forma satisfactoria \cite{bjornson2024mimo}.
+
+Esta limitación resulta especialmente crítica en entornos sin línea de vista directa (NLOS, del inglés \textit{Non-Line-of-Sight}), donde la comunicación depende exclusivamente de reflexiones y difracciones del entorno. En tales condiciones, las señales experimentan atenuaciones considerables, particularmente en bandas de frecuencia elevadas como las ondas milimétricas (mmWave) o terahercios (THz), donde las pérdidas de propagación son más severas.
+
+Ante esta problemática surge un nuevo paradigma: en lugar de limitarse a optimizar los extremos del enlace (transmisor y receptor), ¿es posible modificar activamente el comportamiento del propio canal de propagación? Las \textbf{superficies reconfigurables inteligentes} (RIS, del inglés \textit{Reconfigurable Intelligent Surfaces}) representan una respuesta afirmativa a esta cuestión. Estas estructuras permiten alterar dinámicamente las propiedades de reflexión del entorno, redirigiendo las señales hacia direcciones específicas que de otro modo serían inalcanzables o presentarían condiciones de propagación deficientes.
+
+% FIGURA: Escenario motivacional
+\begin{figure}[htbp]
+    \centering
+    % NOTA: Insertar figura del escenario LOS/NLOS con RIS
+    \fbox{\parbox{0.75\textwidth}{\centering\vspace{1.5cm}
+    \textbf{[Insertar Figura: Escenario con RIS]}\\
+    Transmisor, receptor LOS, receptor NLOS, y RIS redirigiendo la señal
+    \vspace{1.5cm}}}
+    \caption{Escenario donde el receptor NLOS tiene condiciones de canal débiles. La RIS permite redirigir la señal hacia el receptor deseado, mejorando la cobertura.}
+    \label{fig:escenario_ris}
+\end{figure}
+
+A lo largo de este capítulo se desarrollan los fundamentos teóricos que sustentan esta tecnología, comenzando por los principios físicos básicos, continuando con el modelado matemático del canal asistido por RIS, y finalizando con su aplicación en sistemas MIMO.
+
+%==============================================================================
+\section{Principios Físicos de las Superficies Reflectantes}
+\label{sec:fisica_ris}
+%==============================================================================
+
+Cuando una onda electromagnética incide sobre una superficie, su comportamiento puede clasificarse entre dos casos extremos: \textbf{reflexión especular}, donde la onda mantiene su carácter plano y cambia de dirección según la ley de Snell (ángulo de incidencia $\phi$ produce ángulo reflejado $-\phi$), y \textbf{reflexión difusa} o \textit{scattering}, donde la energía se dispersa en múltiples direcciones \cite{bjornson2024mimo}.
+
+El tipo de reflexión predominante depende de la relación entre las características geométricas de la superficie y la longitud de onda $\lambda$. Para reflexión aproximadamente especular, la superficie debe extenderse varias longitudes de onda y su rugosidad debe ser pequeña comparada con $\lambda$.
+
+El comportamiento de una superficie reflectante puede analizarse mediante el \textbf{principio de Huygens-Fresnel}: cuando un frente de onda alcanza un objeto, cada punto de su superficie actúa como fuente secundaria que emite ondas esféricas, y la superposición coherente de estas emisiones determina el frente de onda resultante. Modelando la superficie como un array lineal uniforme (ULA) de $M$ puntos con separación $\Delta$, los desfases relativos observados quedan descritos por el \textbf{vector de respuesta del array}:
+
+\begin{equation}
+    \mathbf{a}(\phi) = \begin{bmatrix}
+        1, &
+        e^{-j2\pi\frac{\Delta\sin(\phi)}{\lambda}}, &
+        \cdots, &
+        e^{-j2\pi\frac{(M-1)\Delta\sin(\phi)}{\lambda}}
+    \end{bmatrix}^T \in \mathbb{C}^M
+    \label{eq:array_response}
+\end{equation}
+
+Este vector captura que la onda recorre distancias adicionales $n\Delta\sin(\phi)$ para alcanzar el $n$-ésimo punto. Cuando estos puntos reemiten con los desfases acumulados, el resultado equivale a conformación de haz (beamforming) hacia la dirección $-\phi$, explicando matemáticamente la reflexión especular.
+
+%==============================================================================
+\section{Estructura y Funcionamiento de las RIS}
+\label{sec:estructura_ris}
+%==============================================================================
+
+%------------------------------------------------------------------------------
+\subsection{Coeficiente de Reflexión y Control de Fase}
+\label{subsec:coef_reflexion}
+%------------------------------------------------------------------------------
+
+El comportamiento reflectivo de una superficie viene determinado por las impedancias características de los medios involucrados. Cuando una onda alcanza la interfaz entre el espacio libre (impedancia $Z_0 \approx 377\,\Omega$) y un material de impedancia $Z_1$, el coeficiente de reflexión se define como \cite{bjornson2024mimo}:
+
+\begin{equation}
+    \Gamma_{01} = \frac{Z_1 - Z_0}{Z_1 + Z_0}
+    \label{eq:coef_reflexion}
+\end{equation}
+
+El módulo $|\Gamma_{01}|^2$ determina la fracción de potencia reflejada. Una característica clave para el diseño de RIS es que, si el elemento reflector presenta una impedancia puramente reactiva $Z_n = jX_n$ con $X_n \in \mathbb{R}$, entonces $|\Gamma_{0n}| = 1$: toda la potencia incidente es reflejada. Simultáneamente, la fase del coeficiente resulta controlable variando $X_n$, permitiendo barrer todo el rango $[-\pi, \pi)$. En implementaciones prácticas, este control se logra mediante \textbf{diodos varactores} cuya capacitancia depende de una tensión de polarización externa.
+
+%------------------------------------------------------------------------------
+\subsection{Matriz de Reflexión}
+\label{subsec:matriz_reflexion}
+%------------------------------------------------------------------------------
+
+Una RIS está compuesta por $N$ elementos unitarios denominados \textbf{metaátomos}, dispuestos típicamente en configuración de array plano uniforme (UPA) con $N_H \times N_V$ elementos. Cada metaátomo $n$ introduce un desfase controlable $\psi_n \in [-\pi, \pi)$ sobre la porción de onda que refleja.
+
+El efecto conjunto de todos los metaátomos se representa mediante la \textbf{matriz de reflexión}:
+
+\begin{equation}
+    \boxed{
+    \mathbf{D}_\psi = \operatorname{diag}\left(e^{j\psi_1}, e^{j\psi_2}, \ldots, e^{j\psi_N}\right) \in \mathbb{C}^{N \times N}
+    }
+    \label{eq:matriz_reflexion}
+\end{equation}
+
+Esta matriz diagonal captura la naturaleza local de la interacción: cada metaátomo únicamente afecta a la señal que incide sobre él. La configuración de la superficie queda especificada por el vector de fases $\boldsymbol{\psi} = [\psi_1, \ldots, \psi_N]^T$.
+
+La capacidad de elegir arbitrariamente los elementos de $\mathbf{D}_\psi$ permite sintetizar cualquier vector de respuesta deseado, lo que equivale a poder \textbf{dirigir el haz reflejado hacia direcciones arbitrarias}, no limitadas a la reflexión especular convencional.
+
+%------------------------------------------------------------------------------
+\subsection{Tecnologías de Implementación}
+\label{subsec:implementacion}
+%------------------------------------------------------------------------------
+
+Las RIS se enmarcan dentro de los \textbf{metamateriales}: estructuras artificiales con propiedades electromagnéticas diseñadas a medida. Las principales tecnologías de implementación son:
+
+\begin{itemize}
+    \item \textbf{Diodos varactores:} Variación continua de fase mediante tensión de polarización. Mayor flexibilidad pero circuitería más compleja.
+    
+    \item \textbf{Diodos PIN:} Conmutación entre estados discretos de fase (1-bit: 2 estados, 2-bit: 4 estados). Menor complejidad, atractivos para gran escala.
+\end{itemize}
+
+Las pérdidas de inserción típicas (1-3 dB) resultan despreciables frente a las pérdidas de propagación características de enlaces inalámbricos ($\sim$100 dB).
+
+%==============================================================================
+\section{Modelo de Canal Asistido por RIS}
+\label{sec:modelo_canal}
+%==============================================================================
+
+%------------------------------------------------------------------------------
+\subsection{Canal SISO de Banda Estrecha}
+\label{subsec:canal_siso}
+%------------------------------------------------------------------------------
+
+Considérese un enlace punto a punto donde transmisor y receptor disponen de una única antena, con una RIS de $N$ metaátomos en el entorno. La señal recibida es:
+
+\begin{equation}
+    y = h \cdot x + n
+    \label{eq:senal_recibida}
+\end{equation}
+
+donde $x$ es la señal transmitida con energía $q = \mathbb{E}[|x|^2]$ y $n \sim \mathcal{N}_\mathbb{C}(0, N_0)$ es ruido aditivo.
+
+La presencia de la RIS modifica la estructura del canal. Según el modelo establecido en \cite{bjornson2024mimo}, el coeficiente de canal total resulta de la superposición de dos contribuciones:
+
+\begin{equation}
+    \boxed{
+    h = h_s + \sum_{n=1}^{N} h_{r,n} e^{j\psi_n} h_{t,n} = h_s + \mathbf{h}_r^T \mathbf{D}_\psi \mathbf{h}_t
+    }
+    \label{eq:canal_ris}
+\end{equation}
+
+donde:
+\begin{itemize}
+    \item $h_s \in \mathbb{C}$: \textbf{Canal estático} (caminos no afectados por la RIS, incluyendo enlace directo si existe)
+    \item $h_{t,n} \in \mathbb{C}$: Canal transmisor $\rightarrow$ metaátomo $n$
+    \item $h_{r,n} \in \mathbb{C}$: Canal metaátomo $n$ $\rightarrow$ receptor
+    \item $e^{j\psi_n}$: Desfase controlable del metaátomo $n$
+\end{itemize}
+
+Los vectores $\mathbf{h}_t = [h_{t,1}, \ldots, h_{t,N}]^T$ y $\mathbf{h}_r = [h_{r,1}, \ldots, h_{r,N}]^T$ agrupan los canales parciales hacia y desde la RIS.
+
+% FIGURA: Modelo de canal
+\begin{figure}[htbp]
+    \centering
+    \fbox{\parbox{0.75\textwidth}{\centering\vspace{1.5cm}
+    \textbf{[Insertar Figura: Modelo de canal con RIS]}\\
+    Transmisor, RIS con $N$ metaátomos, receptor\\
+    Mostrando $h_s$, $\mathbf{h}_t$, $\mathbf{h}_r$ y controlador
+    \vspace{1.5cm}}}
+    \caption{Canal SISO asistido por una RIS con $N$ metaátomos. El canal SIMO $\mathbf{h}_t$ conecta el transmisor con la superficie, y el canal MISO $\mathbf{h}_r$ conecta la superficie con el receptor.}
+    \label{fig:modelo_canal}
+\end{figure}
+
+%------------------------------------------------------------------------------
+\subsection{Configuración Óptima de Fases}
+\label{subsec:config_optima}
+%------------------------------------------------------------------------------
+
+El objetivo es determinar $\{\psi_n\}_{n=1}^N$ que maximiza la capacidad:
+
+\begin{equation}
+    C = \log_2\left(1 + \frac{q|h|^2}{N_0}\right) = \log_2\left(1 + \frac{q|h_s + \mathbf{h}_r^T \mathbf{D}_\psi \mathbf{h}_t|^2}{N_0}\right)
+    \label{eq:capacidad}
+\end{equation}
+
+Maximizar $C$ equivale a maximizar $|h|^2$. Aplicando la desigualdad de Cauchy-Schwarz:
+
+\begin{equation}
+    |h|^2 = \left|h_s + \sum_{n=1}^{N} h_{r,n} h_{t,n} e^{j\psi_n}\right|^2 \leq \left(|h_s| + \sum_{n=1}^{N} |h_{r,n} h_{t,n}|\right)^2
+    \label{eq:cota_superior}
+\end{equation}
+
+La igualdad se alcanza cuando todos los términos tienen la misma fase que $h_s$:
+
+\begin{tcolorbox}[colback=blue!5!white,colframe=blue!75!black,title=Configuración Óptima de la RIS]
+Según \cite{bjornson2024mimo}, la capacidad se maximiza configurando cada metaátomo con:
+\begin{equation}
+    \boxed{
+    \psi_n^{opt} = \arg(h_s) - \arg(h_{r,n} h_{t,n})
+    }
+    \label{eq:fase_optima}
+\end{equation}
+para $n = 1, \ldots, N$.
+
+La capacidad máxima resultante es:
+\begin{equation}
+    C_{max} = \log_2\left(1 + \frac{q\left(|h_s| + \sum_{n=1}^{N}|h_{r,n} h_{t,n}|\right)^2}{N_0}\right)
+    \label{eq:capacidad_maxima}
+\end{equation}
+\end{tcolorbox}
+
+La interpretación física es que la configuración óptima \textbf{alinea en fase} las contribuciones de todos los caminos, garantizando suma constructiva en el receptor. Cada metaátomo compensa el desfase de los canales de ida y vuelta, sustituyéndolo por el desfase del canal directo.
+
+%------------------------------------------------------------------------------
+\subsection{Escalado Cuadrático con el Número de Elementos}
+\label{subsec:escalado}
+%------------------------------------------------------------------------------
+
+Considerando el caso donde todos los enlaces transmisor-RIS tienen ganancia $\beta_t$ y los enlaces RIS-receptor tienen ganancia $\beta_r$, la contribución de la superficie es:
+
+\begin{equation}
+    \sum_{n=1}^{N} |h_{r,n} h_{t,n}| = N\sqrt{\beta_r \beta_t}
+    \label{eq:contribucion_ris}
+\end{equation}
+
+La ganancia de canal total con configuración óptima resulta:
+
+\begin{equation}
+    |h|^2 = \left(\sqrt{\beta_s} + N\sqrt{\beta_r \beta_t}\right)^2
+    \label{eq:ganancia_total}
+\end{equation}
+
+El análisis de casos límite \cite{bjornson2024mimo} revela:
+
+\begin{equation}
+    \boxed{
+    |h|^2 \approx \begin{cases}
+        N^2 \beta_r \beta_t, & \text{si } \beta_s \ll N^2 \beta_r \beta_t \text{ (canal directo débil)}\\[5pt]
+        \beta_s, & \text{si } \beta_s \gg N^2 \beta_r \beta_t \text{ (canal directo fuerte)}
+    \end{cases}
+    }
+    \label{eq:escalado}
+\end{equation}
+
+\textbf{Resultado clave:} Cuando la RIS es el camino dominante, la ganancia crece con el \textbf{cuadrado} del número de elementos. Este escalado $O(N^2)$ resulta de dos efectos multiplicativos:
+
+\begin{enumerate}
+    \item \textbf{Ganancia de apertura} ($\times N$): Superficie mayor intercepta más potencia incidente.
+    \item \textbf{Ganancia de conformación} ($\times N$): Coherencia en fase concentra la potencia hacia el receptor.
+\end{enumerate}
+
+Este comportamiento contrasta con el escalado lineal $O(N)$ de sistemas MIMO convencionales, constituyendo uno de los principales atractivos de la tecnología RIS.
+
+%------------------------------------------------------------------------------
+\subsection{Ubicación Óptima de la RIS}
+\label{subsec:ubicacion}
+%------------------------------------------------------------------------------
+
+La ganancia proporcionada por la RIS depende críticamente de su ubicación. Para canales con línea de vista, la ganancia extremo a extremo es proporcional a \cite{bjornson2024mimo}:
+
+\begin{equation}
+    |h|^2 \propto \frac{N^2 A_m^2}{d_t^2 \, d_r^2}
+    \label{eq:ganancia_distancias}
+\end{equation}
+
+donde $d_t$ y $d_r$ son las distancias transmisor-RIS y RIS-receptor, y $A_m$ es el área de cada metaátomo.
+
+\begin{tcolorbox}[colback=green!5!white,colframe=green!75!black,title=Criterio de Ubicación]
+La RIS debe ubicarse \textbf{lo más cerca posible de uno de los dos extremos} del enlace (transmisor o receptor), manteniendo visibilidad directa con ambos. El producto $d_t \cdot d_r$ alcanza su mínimo en los extremos del rango de posiciones válidas, no en el punto medio.
+\end{tcolorbox}
+
+%==============================================================================
+\section{Estimación del Canal con RIS}
+\label{sec:estimacion}
+%==============================================================================
+
+La implementación práctica de la configuración óptima \eqref{eq:fase_optima} requiere conocer $h_s$ y los productos $\{h_{r,n} h_{t,n}\}_{n=1}^N$ (no es necesario conocer $h_{r,n}$ y $h_{t,n}$ por separado).
+
+Definiendo el \textbf{vector de canal extendido} $\check{\mathbf{h}} = [h_s, h_{r,1}h_{t,1}, \ldots, h_{r,N}h_{t,N}]^T \in \mathbb{C}^{N+1}$, el canal se expresa como $h = \boldsymbol{\psi}^T \check{\mathbf{h|}|}$, donde $\boldsymbol{\psi} = [1, e^{j\psi_1}, \ldots, e^{j\psi_N}]^T$.
+
+El procedimiento de estimación consiste en transmitir $L_p = N+1$ pilotos mientras la RIS alterna entre configuraciones predefinidas, formando un sistema lineal resoluble. Utilizando configuraciones basadas en la matriz DFT, el estimador de máxima verosimilitud proporciona \cite{bjornson2024mimo}:
+
+\begin{equation}
+    \hat{\check{\mathbf{h}}}_{ML} = \check{\mathbf{h}} + \text{término de error}
+    \label{eq:estimador_ml}
+\end{equation}
+
+donde el error decrece al aumentar la energía de los pilotos. Una vez obtenida la estimación, la configuración óptima se calcula y se comunica a la RIS mediante un enlace de control.
+
+%==============================================================================
+\section{RIS en Sistemas MIMO}
+\label{sec:mimo}
+%==============================================================================
+
+%------------------------------------------------------------------------------
+\subsection{Canal MIMO Punto a Punto}
+\label{subsec:mimo_p2p}
+%------------------------------------------------------------------------------
+
+En un sistema MIMO con $K$ antenas transmisoras y $M$ antenas receptoras, la matriz de canal $\mathbf{H} \in \mathbb{C}^{M \times K}$ en presencia de una RIS adopta la estructura:
+
+\begin{equation}
+    \boxed{
+    \mathbf{H} = \mathbf{H}_s + \mathbf{H}_r \mathbf{D}_\psi \mathbf{H}_t
+    }
+    \label{eq:canal_mimo}
+\end{equation}
+
+donde:
+\begin{itemize}
+    \item $\mathbf{H}_s \in \mathbb{C}^{M \times K}$: Matriz de canal directo
+    \item $\mathbf{H}_t \in \mathbb{C}^{N \times K}$: Canales transmisor $\rightarrow$ RIS
+    \item $\mathbf{H}_r \in \mathbb{C}^{M \times N}$: Canales RIS $\rightarrow$ receptor
+\end{itemize}
+
+Una observación importante señalada en \cite{bjornson2024mimo} es que el rango de $\mathbf{H}_r \mathbf{D}_\psi \mathbf{H}_t$ está acotado por $\min(\text{rango}(\mathbf{H}_r), \text{rango}(\mathbf{H}_t))$. Esto implica que \textbf{una RIS no puede incrementar sustancialmente el rango del canal MIMO}; su efecto principal es mejorar la ganancia de uno o varios valores singulares, pero no crear nuevos grados de libertad espaciales. Para mejorar múltiples valores singulares simultáneamente, se requieren múltiples RIS en ubicaciones diversas.
+
+%------------------------------------------------------------------------------
+\subsection{Canal MIMO Multiusuario}
+\label{subsec:mimo_mu}
+%------------------------------------------------------------------------------
+
+En el escenario de enlace ascendente con $K$ usuarios monoantena y una estación base con $M$ antenas, el canal del usuario $k$ se modela como:
+
+\begin{equation}
+    \mathbf{h}_k = \mathbf{h}_{s,k} + \mathbf{H}_r \mathbf{D}_\psi \mathbf{h}_{t,k} \in \mathbb{C}^M
+    \label{eq:canal_usuario}
+\end{equation}
+
+La matriz de canal agregada $\mathbf{H} = [\mathbf{h}_1, \ldots, \mathbf{h}_K]$ determina la capacidad suma:
+
+\begin{equation}
+    C_{sum} = \log_2 \det\left(\mathbf{I}_M + \frac{q}{N_0} \mathbf{H}\mathbf{H}^H\right)
+    \label{eq:capacidad_suma}
+\end{equation}
+
+La optimización de $\mathbf{D}_\psi$ puede realizarse mediante algoritmos iterativos que actualizan secuencialmente cada fase $\psi_n$. Según \cite{bjornson2024mimo}, la actualización óptima de cada fase admite expresión cerrada:
+
+\begin{equation}
+    \psi_n \leftarrow -\arg\left(\mathbf{b}_n^H \mathbf{A}_n^{-1} \mathbf{h}_{r,n}\right)
+    \label{eq:actualizacion_fase}
+\end{equation}
+
+donde $\mathbf{A}_n$ y $\mathbf{b}_n$ son matrices auxiliares dependientes de los canales y las fases de los demás metaátomos.
+
+%------------------------------------------------------------------------------
+\subsection{Consideraciones para Redes Cell-Free}
+\label{subsec:cell_free}
+%------------------------------------------------------------------------------
+
+El modelo MIMO multiusuario se extiende naturalmente a \textbf{redes Cell-Free Massive MIMO}, donde múltiples puntos de acceso (APs) distribuidos sirven conjuntamente a los usuarios. En este contexto, el canal del usuario $k$ hacia el AP $p$ asistido por la RIS $b$ adopta la forma:
+
+\begin{equation}
+    h_{k,p} = h_{s,k,p} + \mathbf{h}_{r,p}^T \mathbf{D}_\psi \mathbf{h}_{t,k}
+    \label{eq:canal_cellfree}
+\end{equation}
+
+Las RIS resultan particularmente beneficiosas en estas arquitecturas para:
+\begin{itemize}
+    \item Mejorar cobertura en zonas de sombra entre APs
+    \item Proporcionar caminos alternativos cuando el enlace directo está bloqueado
+    \item Aumentar la diversidad espacial del sistema distribuido
+\end{itemize}
+
+%==============================================================================
+% REFERENCIAS - Añadir al archivo .bib del documento principal
+%==============================================================================
+% @book{bjornson2024mimo,
+%   title={Introduction to Multiple Antenna Communications and Reconfigurable Surfaces},
+%   author={Bj{\"o}rnson, Emil and Hoydis, Jakob and Sanguinetti, Luca},
+%   year={2024},
+%   publisher={Now Publishers}
+% }
+
+\end{document}
